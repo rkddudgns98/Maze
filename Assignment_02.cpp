@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <conio.h>
 #include <stdlib.h>
-#include <time.h>
 #include <windows.h>
 
 #define MAZE_SIZE 19
@@ -27,7 +26,7 @@ int maze[MAZE_SIZE][MAZE_SIZE] =
 	{1,0,1,0,1,0,0,0,1,0,0,0,0,0,1,0,1,0,1},
 	{1,0,1,0,1,1,1,0,1,1,1,1,1,1,1,0,1,0,1},
 	{1,0,1,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,1},
-	{1,0,1,1,1,1,1,0,1,1,1,0,1,0,1,0,1,0,1},
+	{1,0,1,1,1,0,1,0,1,1,1,0,1,0,1,0,1,0,1},
 	{1,0,0,0,0,0,1,0,1,0,1,0,1,0,1,0,1,0,1},
 	{1,1,1,1,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1},
 	{1,0,0,0,0,0,1,0,1,0,1,0,1,0,1,0,1,0,1},
@@ -37,7 +36,7 @@ int maze[MAZE_SIZE][MAZE_SIZE] =
 	{1,0,1,0,0,0,0,0,1,0,0,0,1,0,1,0,1,0,1},
 	{1,0,1,0,1,1,1,1,1,1,1,1,1,0,1,0,1,0,1},
 	{1,0,1,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,1},
-	{1,0,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,0,1},
+	{1,0,1,0,1,0,1,1,1,1,1,1,1,1,1,1,0,0,1},
 	{1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0},
 	{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
 };
@@ -53,7 +52,7 @@ void GotoXY(int _x, int _y)
 //미로인지 아닌지
 int Still_In_MAZE(int x, int y)
 {
-	if (x ==0 && y==1)
+	if (x ==0 && y==1)	//출구
 		return 0;
 	else
 		return 1;
@@ -87,22 +86,65 @@ void GoForward(int* x, int* y, int dir)
 	*y = (dir == UP) ? --(*y) : (dir == DOWN) ? ++(*y) : *y;
 }
 
+//recording
+void Record(int x, int y)
+{
+	static int index = 0;
+	rec[index++] = x;
+	rec[index++] = y;
+}
+
+//길 삭제
+int DelPath(int i, int j)
+{
+	int k = i;
+
+	while (rec[j] >= 0)
+	{
+		rec[i++] = rec[j++];
+	}
+	rec[i] = -1;
+
+	return k;
+}
+
+//Shortest Path
+void ShortestPath()
+{
+	int i = 0, j = 0;
+	while (rec[i] >= 0)
+	{
+		j = i + 2;
+		while (rec[j] >= 0)
+		{
+			if (rec[i] == rec[j] && rec[i +1] == rec[j + 1])
+			{
+				i=DelPath(i, j);
+				break;
+			}
+			else
+				j += 2;
+		}
+		i += 2;
+	}
+}
+
 //오른손법칙
 void Right_Hand_On_Wall(int m[][MAZE_SIZE], int* x, int* y, int* dir)
 {
-	TurnRight(dir);	//우회전한다
+	while (Still_In_MAZE(*x, *y))
+	{
+		Record(*x, *y);
 
-	//Player앞에 벽이있으면 좌회전을 반복
-	while (Wall_Ahead(maze, *x, *y, *dir))	
-		TurnLeft(dir);	
+		TurnRight(dir);	//우회전한다
 
-	//한칸 전진한다
-	GoForward(x, y, *dir);
-}
+		//Player앞에 벽이있으면 좌회전을 반복
+		while (Wall_Ahead(maze, *x, *y, *dir))
+			TurnLeft(dir);
 
-void ShortestPath()
-{
-
+		//한칸 전진한다
+		GoForward(x, y, *dir);
+	}
 }
 
 //미로 출력
@@ -122,10 +164,17 @@ void PrintMaze()
 }
 
 //플레이어 출력
-void PrintPlayer(int px, int py)
+void PrintPlayer()
 {
-	GotoXY(2 * px, py);
+	static int indexP = 0;
+	int x = 0, y = 0;
+
+	x = rec[indexP++];
+	y = rec[indexP++];
+
+	GotoXY(2 * x, y);
 	printf("☆");
+
 }
 
 int main()
@@ -133,18 +182,24 @@ int main()
 	//Player의 x,y좌표, 방향
 	int px = sx, py = sy, dir = LEFT;
 
-	while (Still_In_MAZE(px,py))
+	rec = (int*)calloc(MAZE_SIZE * MAZE_SIZE, sizeof(int));
+
+	Right_Hand_On_Wall(maze, &px, &py, &dir);
+
+	ShortestPath();
+	
+	while (1)
 	{
 		system("cls");
 
 		PrintMaze();
 
-		PrintPlayer(px, py);
+		PrintPlayer();
 
-		Right_Hand_On_Wall(maze, &px, &py, &dir);
-;
 		Sleep(50);
 	}
+	
+	free (rec);
 
 	return 0;
 }
