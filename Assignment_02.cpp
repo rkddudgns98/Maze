@@ -12,7 +12,9 @@
 #define DOWN 4
 #define LEFT 8
 
+
 int* rec;
+//시작 x,y좌표
 int sx = MAZE_SIZE - 1;
 int sy = MAZE_SIZE - 2;
 
@@ -48,21 +50,54 @@ void GotoXY(int _x, int _y)
 	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
 }
 
-void InitPlayer()
+//미로인지 아닌지
+int Still_In_MAZE(int x, int y)
 {
-	int dir = LEFT;
-	int px = sx;
-	int py = sy;
+	if (x ==0 && y==1)
+		return 0;
+	else
+		return 1;
 }
 
-void RightHand(int* px, int* py, int& dir)
+//해당 방향이 벽인지 아닌지
+int Wall_Ahead(int m[][MAZE_SIZE], int x, int y, int dir)
 {
+	x = (dir == LEFT) ? --x : (dir == RIGHT) ? ++x : x;
+	y = (dir == UP) ? --y : (dir == DOWN) ? ++y : y;
 
+	return m[y][x];
 }
 
-void GoForward(int* px, int* py, int& dir)
+//방향전환
+void TurnRight(int* dir)
 {
-	
+	*dir <<= 1;
+	*dir = (*dir > LEFT) ? UP : *dir;
+}
+void TurnLeft(int* dir)
+{
+	*dir >>= 1;
+	*dir = (*dir == 0) ? LEFT : *dir;
+}
+
+//한칸전진
+void GoForward(int* x, int* y, int dir)
+{
+	*x = (dir == LEFT) ? --(*x) : (dir == RIGHT) ? ++(*x) : *x;
+	*y = (dir == UP) ? --(*y) : (dir == DOWN) ? ++(*y) : *y;
+}
+
+//오른손법칙
+void Right_Hand_On_Wall(int m[][MAZE_SIZE], int* x, int* y, int* dir)
+{
+	TurnRight(dir);	//우회전한다
+
+	//Player앞에 벽이있으면 좌회전을 반복
+	while (Wall_Ahead(maze, *x, *y, *dir))	
+		TurnLeft(dir);	
+
+	//한칸 전진한다
+	GoForward(x, y, *dir);
 }
 
 void ShortestPath()
@@ -79,7 +114,7 @@ void PrintMaze()
 		{
 			if (maze[y][x] == 1)
 			{
-				GotoXY( 2*x, y);
+				GotoXY(2 * x, y);
 				printf("■");
 			}
 		}
@@ -87,22 +122,27 @@ void PrintMaze()
 }
 
 //플레이어 출력
-void PrintPlayer()
+void PrintPlayer(int px, int py)
 {
-	GotoXY(2*sx, sy);
+	GotoXY(2 * px, py);
 	printf("☆");
 }
 
 int main()
 {
-	while (1)
+	//Player의 x,y좌표, 방향
+	int px = sx, py = sy, dir = LEFT;
+
+	while (Still_In_MAZE(px,py))
 	{
 		system("cls");
 
 		PrintMaze();
 
-		PrintPlayer();
+		PrintPlayer(px, py);
 
+		Right_Hand_On_Wall(maze, &px, &py, &dir);
+;
 		Sleep(50);
 	}
 
