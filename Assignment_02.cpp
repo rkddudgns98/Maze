@@ -52,10 +52,11 @@ void GotoXY(int _x, int _y)
 //미로인지 아닌지
 int Still_In_MAZE(int x, int y)
 {
-	if (x ==0 && y==1)	//출구
-		return 0;
-	else
+	if ((x > 0 && x < 2 * MAZE_SIZE) && (y > 0 && y < MAZE_SIZE))	//출구
 		return 1;
+	else
+		return 0;
+
 }
 
 //해당 방향이 벽인지 아닌지
@@ -147,6 +148,24 @@ void Right_Hand_On_Wall(int m[][MAZE_SIZE], int* x, int* y, int* dir)
 	}
 }
 
+//왼손법칙
+void Left_Hand_On_Wall(int m[][MAZE_SIZE], int* x, int* y, int* dir)
+{
+	while (Still_In_MAZE(*x, *y))
+	{
+		Record(*x, *y);
+
+		TurnLeft(dir);	//우회전한다
+
+		//Player앞에 벽이있으면 좌회전을 반복
+		while (Wall_Ahead(maze, *x, *y, *dir))
+			TurnRight(dir);
+
+		//한칸 전진한다
+		GoForward(x, y, *dir);
+	}
+}
+
 //미로 출력
 void PrintMaze()
 {
@@ -164,17 +183,15 @@ void PrintMaze()
 }
 
 //플레이어 출력
-void PrintPlayer()
+void PrintPlayer(int *x,int *y)
 {
 	static int indexP = 0;
-	int x = 0, y = 0;
 
-	x = rec[indexP++];
-	y = rec[indexP++];
+	*x = rec[indexP++];
+	*y = rec[indexP++];
 
-	GotoXY(2 * x, y);
+	GotoXY(2 * *x, *y);
 	printf("☆");
-
 }
 
 int main()
@@ -188,13 +205,15 @@ int main()
 
 	ShortestPath();
 	
-	while (1)
+	px = sx, py = sy;
+
+	while (Still_In_MAZE(px,py))
 	{
 		system("cls");
 
 		PrintMaze();
 
-		PrintPlayer();
+		PrintPlayer(&px,&py);
 
 		Sleep(50);
 	}
